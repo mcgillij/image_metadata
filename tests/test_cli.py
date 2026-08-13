@@ -14,6 +14,7 @@ def test_help_describes_safe_default_and_removal() -> None:
     assert "--remove-metadata" in result.output
     assert "--nuke-exif" in result.output
     assert "--output" in result.output
+    assert "--sanitize" in result.output
     assert "Images are read-only unless" in result.output
 
 
@@ -52,3 +53,28 @@ def test_cli_rejects_missing_output_directory(tmp_path: Path) -> None:
 
     assert result.exit_code == 2
     assert "parent directory does not exist" in result.output
+
+
+def test_cli_rejects_both_destructive_modes(tmp_path: Path) -> None:
+    result = CliRunner().invoke(
+        cli, [str(tmp_path), "--remove-metadata", "--sanitize"]
+    )
+
+    assert result.exit_code == 2
+    assert "mutually exclusive" in result.output
+
+
+def test_sanitize_cli_exits_one_after_writing_report_for_skip(tmp_path: Path) -> None:
+    image_dir = tmp_path / "images"
+    image_dir.mkdir()
+    Image.new("P", (2, 2)).save(image_dir / "unsupported.png")
+    report = tmp_path / "report.txt"
+
+    result = CliRunner().invoke(
+        cli, [str(image_dir), "--sanitize", "--output", str(report)]
+    )
+
+    assert result.exit_code == 1
+    assert report.is_file()
+    assert "Skipped" in result.output
+    assert "unsupported PNG mode" in report.read_text(encoding="utf-8")

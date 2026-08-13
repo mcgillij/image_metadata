@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 dist/
 image_metadata_report.txt
+test_images/processed/*
+!test_images/processed/.gitkeep
